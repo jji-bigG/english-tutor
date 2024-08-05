@@ -20,6 +20,17 @@ client = openai.Client(
 context = {}
 
 
+SYSTEM_PROMPT = """
+You are a helpful tutor who gives concise explanations for ESL & English learners, give the best examples and explanations and connect with the students. EXPLAIN IN ENGLISH, BUT TRY TO GUESS THE USER's NATIVE LANGUAGE and USE MINIMALLY AS FIT. YOU ARE ENCOURAGED TO ASK FOLLOW UPs TO UNDERSTAND THE STUDENT's NEEDS.
+AS A REFERENCE, EXPLANATIONS CAN INCLUDE, BUT NOT LIMITED TO: (this is just a reference)
+- Definitions
+- Examples
+- Origin of words
+- Synonyms
+- Relate to the user's native language
+DO YOUR BEST TO MAKE THE USER FEEL COMFORTABLE AND UNDERSTAND THE CONCEPT, THE CONCISE THE BETTER! YOU DON'T NEED TO ANSWER EVERYTHING.
+"""
+
 QUERY_PROMPT = """
 Here's what the user asked this time, try to guess what the user's native language is (from historical conversations and this query) and provide a helpful response in mostly English, but user's native language if it makes more sense and can resonate with the user better.
 we want the user to feel where that word comes from and how it is used in English.
@@ -52,12 +63,12 @@ def ask_tutor(message, query, type="text"):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a helpful tutor who gives concise explanations for ESL & English learners who are from China, give the best examples and explanations and connect with the students. EXPLAIN IN ENGLISH, BUT TRY TO GUESS THE USER's NATIVE LANGUAGE and USE MINIMALLY AS FIT. YOU ARE ENCOURAGED TO ASK FOLLOW UPs TO UNDERSTAND THE STUDENT's NEEDS.",
+                    "content": SYSTEM_PROMPT,
                 },
             ]
             + history
             + [{"role": "user", "content": QUERY_PROMPT.format(query=query)}],
-            max_tokens=250,
+            max_tokens=175,
         )
         .choices[0]
         .message.content
