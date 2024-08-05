@@ -103,6 +103,9 @@ def handle_buttons(message):
 # Handle if the message is an audio message
 @bot.message_handler(content_types=["voice"])
 def handle_audio(message):
+    if message.from_user.is_bot:
+        return
+
     try:
         # Step 1: Download the audio message
         file_info = bot.get_file(message.voice.file_id)
@@ -169,7 +172,9 @@ def handle_photo(message):
 @bot.message_handler(content_types=["text"])
 def handle_text(message):
     # print the user id of message so we can limit
-    print(message)
+    # print(message)
+    if message.from_user.is_bot:
+        return
 
     processing_message = bot.send_message(
         message.chat.id,
