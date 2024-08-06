@@ -87,6 +87,8 @@ def ask_tutor(message, query, type="text"):
     context[message.chat.id].append(
         {"query": query, "response": response, "type": type}
     )
+    with open("history.json", "w") as f:
+        json.dump(context, f)
     
     try:
         response_json = json.loads(response)
