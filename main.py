@@ -5,6 +5,7 @@ from telebot import types
 import dotenv
 import os
 import requests
+import json
 
 import openai
 
@@ -21,22 +22,30 @@ context = {}
 
 
 SYSTEM_PROMPT = """
-You are a helpful tutor who gives concise explanations for ESL & English learners, give the best examples and explanations and connect with the students. EXPLAIN IN ENGLISH, BUT TRY TO GUESS THE USER's NATIVE LANGUAGE and USE MINIMALLY AS FIT. YOU ARE ENCOURAGED TO ASK FOLLOW UPs TO UNDERSTAND THE STUDENT's NEEDS.
-AS A REFERENCE, EXPLANATIONS CAN INCLUDE, BUT NOT LIMITED TO: (this is just a reference)
-- Definitions
-- Examples
-- Origin of words
-- Synonyms
-- Relate to the user's native language
-DO YOUR BEST TO MAKE THE USER FEEL COMFORTABLE AND UNDERSTAND THE CONCEPT, THE CONCISE THE BETTER! YOU DON'T NEED TO ANSWER EVERYTHING.
+You are a helpful tutor who gives concise explanations for ESL & English learners, give the best examples and explanations and connect with the students. 
+STUDENTS ARE FROM CHINA and are learning English. Do not include Pinyin, but you can use Chinese characters if it helps.
+OUTPUT IS IN JSON COMPATIBLE FORMAT, WITH THE SAME KEYS.
 """
+# EXPLAIN IN ENGLISH, BUT TRY TO GUESS THE USER's NATIVE LANGUAGE and USE MINIMALLY AS FIT. YOU ARE ENCOURAGED TO ASK FOLLOW UPs TO UNDERSTAND THE STUDENT's NEEDS.
 
 QUERY_PROMPT = """
-Here's what the user asked this time, try to guess what the user's native language is (from historical conversations and this query) and provide a helpful response in mostly English, but user's native language if it makes more sense and can resonate with the user better.
-we want the user to feel where that word comes from and how it is used in English.
+AS A REFERENCE, EXPLANATIONS CAN INCLUDE, BUT NOT LIMITED TO: (this is just a reference)
+- query_prediction: REQUIRED give out that specific phrase the user asks. STRING of the phrase, idiom, or word.
+- definition: REQUIRED the meaning of the phrase
+- examples: REQUIRED LIST OF STRINGS of different aspects where the query's phrase can be used.
+- origin: OPTIONAL STRING that describes a story or a background of where that phrase came to be. What it originally meant and why it gets to used like this now.
+- synonyms: OPTIONAL LIST OF STRINGS of similar words/phrases
+- relate: OPTIONAL if this is a complicated idiom or phrase that only English native speakers understand, you use this to relate to others.
+consider these aspects, but a lot of times you can't cover all of them depending on the query (ANSWER FOR REQUIRED FIELDS). These are just a reference to help you draft a great response.
+FOR OPTIONAL, ONLY INCLUDE IF IT MAKES SENSE AND CAN RESONATE WITH THE USER BETTER.
+
+DO YOUR BEST TO MAKE THE USER FEEL COMFORTABLE AND UNDERSTAND THE CONCEPT, THE CONCISE THE BETTER! YOU DON'T NEED TO ANSWER EVERYTHING.
+
 USER's QUERY: {query}
-YOUR RESPONSE AS AN EXPERIENCED TUTOR:
+REPOND IN ENGLISH, MUST BE JSON COMPATIBLE (NO COMMENTS) (LOADED STRAIGHT INTO A PYTHON DICT):
 """
+
+# provide a helpful response in mostly English, but user's native language if it makes more sense and can resonate with the user better.
 
 
 def ask_tutor(message, query, type="text"):
@@ -68,7 +77,7 @@ def ask_tutor(message, query, type="text"):
             ]
             + history
             + [{"role": "user", "content": QUERY_PROMPT.format(query=query)}],
-            max_tokens=175,
+            max_tokens=350,
         )
         .choices[0]
         .message.content
@@ -78,8 +87,14 @@ def ask_tutor(message, query, type="text"):
     context[message.chat.id].append(
         {"query": query, "response": response, "type": type}
     )
+    
+    try:
+        response_json = json.loads(response)
+        response = f"问题: {response_json['query_prediction']}\n\n定义: {response_json['definition']}\n\n例子: {"\n".join(response_json['examples'])}\n\n出处: {response_json.get('origin', 'N/A')}\n\n同义词: {", ".join(response_json.get('synonyms', ['N/A']))}\n\n关联: {response_json.get('relate', 'N/A')}"
 
-    return response
+        return response
+    except Exception as e:
+        return response
 
 
 # when receiving the start and clear command
